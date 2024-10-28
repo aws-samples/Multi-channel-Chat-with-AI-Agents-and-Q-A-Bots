@@ -36,6 +36,8 @@ On a high-level, the solution consists of the following components, each contain
 The below instructions show how to deploy the solution using AWS CDK CLI.
 These instructions assume you have completed all the prerequisites, and you have an existing Amazon Connect instance, SSO/SAML enabled.
 
+> Note:If you are using a Windows device please use the [Git BASH](https://gitforwindows.org/#bash) terminal and use alternative commands where highlighted.
+
 1. Clone the solution to your computer (using `git clone`)
 
 2. Check AWS CLI
@@ -61,7 +63,7 @@ These instructions assume you have completed all the prerequisites, and you have
     - When prompted, provide the following parameters:
 
         - `sms-enabled`: Set to true to enable SMS support
-            - `origination-number-id`: The ID of the Origination Phone number you want to use.  Can be found in the AWS End User Messaging SMS console by clicking on `Configurations -> Phone numbers` and selecting the phone number you want to use.  The ID is the `Phone number ID` column.  NOTE:This phone number must not have 2-way SMS enabled.
+            - `origination-number-id`: The ID of the Origination Phone number you want to use.  Can be found in the AWS End User Messaging SMS console by clicking on `Configurations -> Phone numbers` and selecting the phone number you want to use.  The ID is the `Phone number ID` column.  NOTE: This number shouldn't be part of a Phone Pool and shouldn't have 2-WAY SMS previously enabled.
         - `whatsapp-enabled`: Set to true to enable WhatsApp support
             - `whatsapp-origination-number-id`: The ID of the Origination Phone number you want to use.  Can be found in the AWS End User Messaging WhatsApp console. 
             - `whatsapp-sns-topic-arn`: The ARN of the SNS Topic that was used when configuring your WhatsApp Business Account.
@@ -71,6 +73,7 @@ These instructions assume you have completed all the prerequisites, and you have
     - In your terminal navigate to `two-way-sms-chat-with-a-generative-ai-chatbot/cdk-stacks`
     - If you have started with a new environment, please bootstrap CDK: `cdk bootstrap`
     - Run the script: `npm run cdk:deploy`
+        - On **Windows devices** use `npm run cdk:deploy:gitbash`
     - This script deploys CDK stacks
     - Wait for all resources to be provisioned before continuing to the next step
     - AWS CDK output will be provided in your Terminal.
@@ -90,7 +93,7 @@ These instructions assume you have completed all the prerequisites, and you have
     - Using either SMS or WhatsApp, send  `start` to the AWS End User Messaging Phone Number you selected.  You should receive a response from the solution with instructions to proceed with the demo.
 
 ## Bedrock Web Crawler Knowledge Base
-By default, the solution will create a Bedrock Knowledge Based using an S3 Bucket as the datasource.  If you would like to use the Web Crawler instead, you can uncomment the WebCrawler section in the `ccdk-stacks/lib/cdk-backend-stack.ts` file.  
+By default, the solution will create a Bedrock Knowledge Based using an S3 Bucket as the datasource.  If you would like to use the Web Crawler instead, you can uncomment the WebCrawler section in the `cdk-stacks/lib/cdk-backend-stack.ts` file.  
 
 ## Conversational Data
 This solution will store conversational data in Amazon DynamoDB. Using [DynamoDB TTL](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html), this data is automatically removed after 10 minutes.  This can be configured by changing the `SESSION_SECONDS` variable in the `cdk-stacks/lib/cdk-backend-stack.ts` file.
@@ -117,6 +120,32 @@ The `ChatContext` table has the following structure:
     - Inspect the CloudWatch Logs for the `ChatProcessor` Lambda function to ensure it is processing messages correctly
         - For more detailed logs you can [Set the Log Level to TRACE](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-cloudwatchlogs-advanced.html#monitoring-cloudwatchlogs-log-level-setting)
     - Check the `ChatProcessor` Lambda function's `Environment Variables` and ensure that the `KNOWLEDGE_BASE_ID` is correct
+- Credential Errors:
+```
+@aws-sdk/credential-provider-node - defaultProvider::fromEnv WARNING:
+    Multiple credential sources detected:
+    Both AWS_PROFILE and the pair AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY static credentials are set.
+    This SDK will proceed with the AWS_PROFILE value.
+
+    However, a future version may change this behavior to prefer the ENV static credentials.
+    Please ensure that your environment only sets either the AWS_PROFILE or the
+    AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY pair.
+```
+Remove either the AWS_PROFILE or the credentials from your environment.
+
+- Docker Errors: 
+```
+ERROR: Cannot connect to the Docker daemon at unix:///Users/bgiorgin/.docker/run/docker.sock. Is the docker daemon running?
+```
+
+Make sure you have Docker installed and running.
+
+```
+error getting credentials - err: exec: "docker-credential-desktop": executable file not found in $PATH, out: ``
+```
+
+Check your `~/.docker/config.json` for the line saying: `credsStore`. Replace this with `credStore` instead.
+ref: https://stackoverflow.com/questions/67642620/docker-credential-desktop-not-installed-or-not-available-in-path
 
 ## Clean up
 
