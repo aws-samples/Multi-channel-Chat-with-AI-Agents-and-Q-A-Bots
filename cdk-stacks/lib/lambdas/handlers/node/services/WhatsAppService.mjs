@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { SocialMessagingClient, ListLinkedWhatsAppBusinessAccountsCommand, SendWhatsAppMessageCommand } from "@aws-sdk/client-socialmessaging";
+import { SocialMessagingClient, SendWhatsAppMessageCommand } from "@aws-sdk/client-socialmessaging";
 const client = new SocialMessagingClient({region: process.env.AWS_REGION});
 
 export async function markMessageAsRead (messageId) {
@@ -28,7 +28,7 @@ export async function markMessageAsRead (messageId) {
 } 
 
 
-export async function sendWhatsAppMessage (destinationNumber, outboundMessage, previewUrl = false) {
+export async function sendWhatsAppMessage (destinationNumber, outboundMessage, previewUrl = false, sessionId=undefined) {
   let message = {
     "messaging_product": "whatsapp",
     "recipient_type": "individual",
@@ -38,6 +38,9 @@ export async function sendWhatsAppMessage (destinationNumber, outboundMessage, p
       "preview_url": previewUrl,
       "body": outboundMessage
     }
+  }
+  if(sessionId) {
+    message.biz_opaque_callback_data = sessionId
   }
 
   let params = {

@@ -4,7 +4,7 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 const bedrock = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
 
-import { BedrockAgentRuntimeClient, RetrieveAndGenerateCommand } from "@aws-sdk/client-bedrock-agent-runtime";
+import { BedrockAgentRuntimeClient, InvokeAgentCommand, RetrieveAndGenerateCommand } from "@aws-sdk/client-bedrock-agent-runtime";
 const agentRuntime = new BedrockAgentRuntimeClient({ region: process.env.AWS_REGION });
 
 const { BedrockAgentClient, StartIngestionJobCommand } = require("@aws-sdk/client-bedrock-agent"); 
@@ -29,6 +29,46 @@ export async function invokeModel (promptEnvelope) {
   } catch (error) {
       console.error('Bedrock.invokeModel: ', error);
       throw new Error(error.message);
+  }
+}
+
+export async function invokeAgent (prompt, sessionId) {
+
+  const agentId = process.env.BEDROCK_AGENT_ID;
+  const agentAliasId = process.env.BEDROCK_AGENT_ALIAS_ID;
+
+  const command = new InvokeAgentCommand({
+    agentId,
+    agentAliasId,
+    sessionId,
+    inputText: prompt,
+  });
+
+  try {
+
+    let completion = "";
+    const response = await agentRuntime.send(command);
+
+    if (response.completion === undefined) {
+      throw new Error("Completion is undefined");
+    }
+
+    for await (const chunkEvent of response.completion) {
+      const chunk = chunkEvent.chunk;
+      console.log('chunk: ',chunk);
+      const decodedResponse = new TextDecoder("utf-8").decode(chunk.bytes);
+      completion += decodedResponse;
+    }
+
+    return { completion };
+
+  } catch (error) {
+    console.error('InvokeAgent error: ', error);
+    if (error.name == "ThrottlingException"){
+      return {output:{text:'Request Rate exceeded, please wait a minute and try again'}}
+    } else {
+      throw new Error(error.message);
+    }
   }
 }
 

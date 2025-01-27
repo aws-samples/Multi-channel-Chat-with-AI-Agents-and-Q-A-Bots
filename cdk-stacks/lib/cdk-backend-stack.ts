@@ -50,48 +50,51 @@ export class CdkBackendStack extends Stack {
         },
     ])
 
-    // Bedrock Knowledge Base
-    const docsBucket = new s3.Bucket(this, "docsBucket", {
-      lifecycleRules: [{
-        expiration: Duration.days(10),
-      }],
-      blockPublicAccess: {
-        blockPublicAcls: true,
-        blockPublicPolicy: true,
-        ignorePublicAcls: true,
-        restrictPublicBuckets: true,
-      },
-      encryption: s3.BucketEncryption.S3_MANAGED,
-      enforceSSL: true,
-      removalPolicy: RemovalPolicy.RETAIN, 
-      serverAccessLogsBucket: accessLogsBucket,
-      serverAccessLogsPrefix: 'kbdocs',
-    });
+    if (!ssmParams.useBedrockAgent) {
 
-    const knowledgeBase = new bedrock.KnowledgeBase(
-      this,
-      "docsKnowledgeBase",
-      {
-        embeddingsModel: bedrock.BedrockFoundationModel.TITAN_EMBED_TEXT_V2_1024,
-        vectorStore: new opensearchserverless.VectorCollection(this, 'VectorCollection', {
-          collectionName: `${configParams.CdkAppName.toLowerCase()}collection`,
-          standbyReplicas: ssmParams.cloudsearchReplicasEnabled ? opensearchserverless.VectorCollectionStandbyReplicas.ENABLED : opensearchserverless.VectorCollectionStandbyReplicas.DISABLED,
-        }), 
-      }
-    );
+      // Bedrock Knowledge Base
+      const docsBucket = new s3.Bucket(this, "docsBucket", {
+        lifecycleRules: [{
+          expiration: Duration.days(10),
+        }],
+        blockPublicAccess: {
+          blockPublicAcls: true,
+          blockPublicPolicy: true,
+          ignorePublicAcls: true,
+          restrictPublicBuckets: true,
+        },
+        encryption: s3.BucketEncryption.S3_MANAGED,
+        enforceSSL: true,
+        removalPolicy: RemovalPolicy.RETAIN, 
+        serverAccessLogsBucket: accessLogsBucket,
+        serverAccessLogsPrefix: 'kbdocs',
+      });
 
-    const dataSource = new bedrock.S3DataSource(
-      this,
-      "docsDataSource",
-      {
-        bucket: docsBucket,
-        knowledgeBase: knowledgeBase,
-        dataSourceName: "docs",
-        chunkingStrategy: bedrock.ChunkingStrategy.FIXED_SIZE,
-        maxTokens: 500,
-        overlapPercentage: 20,
-      }
-    );
+      const knowledgeBase = new bedrock.KnowledgeBase(
+        this,
+        "docsKnowledgeBase",
+        {
+          embeddingsModel: bedrock.BedrockFoundationModel.TITAN_EMBED_TEXT_V2_1024,
+          vectorStore: new opensearchserverless.VectorCollection(this, 'VectorCollection', {
+            collectionName: `${configParams.CdkAppName.toLowerCase()}collection`,
+            standbyReplicas: ssmParams.cloudsearchReplicasEnabled ? opensearchserverless.VectorCollectionStandbyReplicas.ENABLED : opensearchserverless.VectorCollectionStandbyReplicas.DISABLED,
+          }), 
+        }
+      );
+
+      const dataSource = new bedrock.S3DataSource(
+        this,
+        "docsDataSource",
+        {
+          bucket: docsBucket,
+          knowledgeBase: knowledgeBase,
+          dataSourceName: "docs",
+          chunkingStrategy: bedrock.ChunkingStrategy.FIXED_SIZE,
+          maxTokens: 500,
+          overlapPercentage: 20,
+        }
+      );
+    };
 
     NagSuppressions.addResourceSuppressionsByPath(this, '/MultiChannelGenAIDemo/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/DefaultPolicy/Resource', [
       {
@@ -238,11 +241,18 @@ export class CdkBackendStack extends Stack {
           "SMS_SNS_TOPIC_ARN": chatTopic.topicArn,
           "WHATSAPP_PHONE_NUMBER_ID": ssmParams.eumWhatsappOriginationNumberId,
           "WHATSAPP_SNS_TOPIC_ARN": ssmParams.eumWhatsappSNSTopicArn,
-          "BEDROCK_MODEL_ID": "anthropic.claude-3-sonnet-20240229-v1:0", // aws bedrock list-foundation-models --by-provider Anthropic
+          "BEDROCK_MODEL_ID": "anthropic.claude-3-haiku-20240307-v1:0", // aws bedrock list-foundation-models --by-provider Anthropic
+          "USE_BEDROCK_AGENT": `${ssmParams.useBedrockAgent.toString()}`,
+          "BEDROCK_AGENT_ID": ssmParams.bedrockAgentId,
+          "BEDROCK_AGENT_ALIAS_ID": ssmParams.bedrockAgentAliasId,
           "SESSION_SECONDS": "600",
           "KNOWLEDGE_BASE_ID": knowledgeBase.knowledgeBaseId, 
           "LLM_MAX_TOKENS": "300",
-          "LLM_TEMPERATURE": "0.3" 
+          "LLM_TEMPERATURE": "0.3",
+          "CONFIGURATION_SET": ssmParams.configurationSet == 'not-defined' ? undefined : ssmParams.configurationSet,
+          "ACCOUNT_ID": `${this.account}`,
+          "ORGANIZATION_ID": '', //Update this if you need more granularity in your Firehose Stream for things like brands or other organizational units
+          "CONVERSATION_FIREHOSE_STREAM": ssmParams.conversationFirehoseStream == 'not-defined' ? undefined : ssmParams.conversationFirehoseStream,
         }
     });
     //Policy for Lambda
@@ -289,7 +299,10 @@ export class CdkBackendStack extends Stack {
               "bedrock:InvokeModel",
               "bedrock:Retrieve"
             ],
-            resources: [`arn:aws:bedrock:${process.env.AWS_REGION}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0`] 
+            resources: [  
+              `arn:aws:bedrock:${this.region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0`,
+              `arn:aws:bedrock:${this.region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0`,
+            ] 
         }),
         new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
@@ -298,6 +311,21 @@ export class CdkBackendStack extends Stack {
               "bedrock:Retrieve"
             ],
             resources: [knowledgeBase.knowledgeBaseArn] 
+        }),
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [                
+            "bedrock:InvokeAgent"
+          ],
+          resources: [`arn:aws:bedrock:${this.region}:${this.account}:agent-alias/${ssmParams.bedrockAgentId}/${ssmParams.bedrockAgentAliasId}`] 
+        }),
+        new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [                
+              "firehose:PutRecord",
+              "firehose:PutRecordBatch"
+            ],
+            resources: [`arn:aws:firehose:${this.region}:${this.account}:deliverystream/${ssmParams.conversationFirehoseStream}`] 
         }),
       ]
     }));

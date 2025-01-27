@@ -1,55 +1,90 @@
 {
-    "CdkAppName": "MultiChannelGenAIDemo",
-    "CdkBackendStack": "MultiChannelGenAIDemo",
-    "hierarchy": "/MultiChannelGenAIDemo/",
-    "parameters": [
-        {
-            "name": "smsEnabled",
-            "cliFormat": "sms-enabled",
-            "description": "Set to true to enable SMS support",
-            "defaultValue": false,
-            "required": true,
-            "boolean": true
-        },
-        {
-            "name": "originationNumberId",
-            "cliFormat": "origination-number-id",
-            "description": "The ID of the Origination Phone number you want to use.  Can be found in the End User Messaging SMS console.",
-            "required": true
-        },
-        {
-            "name": "whatsappEnabled",
-            "cliFormat": "whatsapp-enabled",
-            "description": "Set to true to enable WhatsApp support",
-            "defaultValue": false,
-            "required": true,
-            "boolean": true
-        },
-        {
-            "name": "eumWhatsappOriginationNumberId",
-            "cliFormat": "whatsapp-origination-number-id",
-            "description": "The ID of the WhatsAppOrigination Phone number you want to use.  Can be found in the End User Messaging WhatsApp console.",
-            "required": true,
-            "parent": "whatsappEnabled"
-        },
-        {
-            "name": "eumWhatsappSNSTopicArn",
-            "cliFormat": "whatsapp-sns-topic-arn",
-            "description": "The ARN of the SNS Topic that was used when configuring your WhatsApp Business Account.",
-            "required": true,
-            "parent": "whatsappEnabled"
-        },
-        {
-            "name": "cloudsearchReplicasEnabled",
-            "cliFormat": "cloudsearch-replicas-enabled",
-            "description": "In order to save costs, you can disable replicas on the CloudSearch collection. We recommend leaving this set to false for development and testing and setting it to true for production environments.",
-            "defaultValue": false,
-            "required": true,
-            "boolean": true
-        }
-    ],
-    "tags": {
-        "project": "Two Way SMS Chat with a Generative AI Chatbot",
-        "os-code-source": "https://github.com/aws-samples/two-way-sms-chat-with-a-generative-ai-chatbot"
-    }
+	"CdkAppName": "MultiChannelGenAIDemo",
+	"CdkBackendStack": "MultiChannelGenAIDemo",
+	"hierarchy": "/MultiChannelGenAIDemo/",
+	"parameters": [
+		{
+			"name": "smsEnabled",
+			"cliFormat": "sms-enabled",
+			"description": "Set to true to enable SMS support",
+			"defaultValue": false,
+			"required": true,
+			"boolean": true
+		},
+		{
+			"name": "originationNumberId",
+			"cliFormat": "origination-number-id",
+			"description": "The ID of the Origination Phone number you want to use.  Can be found in the End User Messaging SMS console.",
+			"required": true
+		},
+		{
+			"name": "configurationSet",
+			"cliFormat": "configuration-set",
+			"description": "The configuration set to use for the SMS messages.",
+			"required": false
+		},
+		{
+			"name": "whatsappEnabled",
+			"cliFormat": "whatsapp-enabled",
+			"description": "Set to true to enable WhatsApp support",
+			"defaultValue": false,
+			"required": true,
+			"boolean": true
+		},
+		{
+			"name": "eumWhatsappOriginationNumberId",
+			"cliFormat": "whatsapp-origination-number-id",
+			"description": "The ID of the WhatsAppOrigination Phone number you want to use.  Can be found in the End User Messaging WhatsApp console.",
+			"required": true,
+			"parent": "whatsappEnabled"
+		},
+		{
+			"name": "eumWhatsappSNSTopicArn",
+			"cliFormat": "whatsapp-sns-topic-arn",
+			"description": "The ARN of the SNS Topic that was used when configuring your WhatsApp Business Account.",
+			"required": true,
+			"parent": "whatsappEnabled"
+		},
+		{
+			"name": "useBedrockAgent",
+			"cliFormat": "use-bedrock-agent",
+			"description": "Set to true to use Bedrock Agents for the chatbot. If false, the chatbot will be deployed using the default knowledge base.",
+			"defaultValue": false,
+			"required": true,
+			"boolean": true
+		},
+		{
+			"name": "bedrockAgentId",
+			"cliFormat": "bedrock-agent-id",
+			"description": "The ID of the Bedrock Agent you want to use.  Can be found in the Bedrock console.",
+			"required": true,
+			"parent": "useBedrockAgent"
+		},
+		{
+			"name": "bedrockAgentAliasId",
+			"cliFormat": "bedrock-agent-alias-id",
+			"description": "The ID of the Bedrock Agent Alias you want to use.  Can be found in the Bedrock console.",
+			"required": true,
+			"parent": "useBedrockAgent"
+		},
+		{
+			"name": "cloudsearchReplicasEnabled",
+			"cliFormat": "cloudsearch-replicas-enabled",
+			"description": "In order to save costs, you can disable replicas on the CloudSearch collection. We recommend leaving this set to false for development and testing and setting it to true for production environments.",
+			"defaultValue": false,
+			"required": true,
+			"boolean": true
+		},
+		{
+			"name": "conversationFirehoseStream",
+			"cliFormat": "conversation-firehose-stream",
+			"description": "The name of the Firehose Stream to use for storing conversation history.",
+			"defaultValue": "not-defined",
+			"required": false
+		}
+	],
+	"tags": {
+		"project": "Two Way SMS Chat with a Generative AI Chatbot",
+		"os-code-source": "https://github.com/aws-samples/two-way-sms-chat-with-a-generative-ai-chatbot"
+	}
 }

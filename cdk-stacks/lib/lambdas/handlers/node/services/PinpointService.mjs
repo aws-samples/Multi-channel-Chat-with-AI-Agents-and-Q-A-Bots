@@ -4,14 +4,20 @@
 import { PinpointSMSVoiceV2Client, SendTextMessageCommand, SendMediaMessageCommand } from "@aws-sdk/client-pinpoint-sms-voice-v2"; 
 const pinpoint = new PinpointSMSVoiceV2Client({ region: process.env.AWS_REGION });
 
-export async function sendSMS (destinationNumber, message) {
-
+export async function sendSMS (destinationNumber, message, sessionId=undefined) {
+  let configurationSet = process.env.CONFIGURATION_SET
   const pinpointInput = { 
     DestinationPhoneNumber: destinationNumber, 
     OriginationIdentity: process.env.PHONE_NUMBER_ID,
     MessageBody: message, 
     DryRun: false,
   };
+  if(process.env.CONFIGURATION_SET) pinpointInput.ConfigurationSetName = process.env.CONFIGURATION_SET
+  if(sessionId) {
+    pinpointInput.Context = {
+      sessionId: sessionId
+    }
+  }
   console.trace(pinpointInput)
 
   try {
@@ -25,14 +31,13 @@ export async function sendSMS (destinationNumber, message) {
 }
 
 export async function sendMMS (destinationNumber, message, s3URI) {
-
   const pinpointInput = { 
     DestinationPhoneNumber: destinationNumber, 
     OriginationIdentity: process.env.PHONE_NUMBER_ID,
     MessageBody: message, 
     DryRun: false,
   };
-
+  if(process.env.CONFIGURATION_SET) pinpointInput.ConfigurationSetName = process.env.CONFIGURATION_SET
   //Add Optional Items
   if(s3URI) pinpointInput.MediaUrls = [s3URI]
 
