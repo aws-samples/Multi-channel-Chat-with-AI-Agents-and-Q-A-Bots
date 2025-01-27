@@ -80,6 +80,7 @@ These instructions assume you have completed all the prerequisites.
     - If you have started with a new environment, please bootstrap CDK: `cdk bootstrap`
     - Run the script: `npm run cdk:deploy`
         - On **Windows devices** use `npm run cdk:deploy:gitbash`
+        - On **Windows devices** use `npm run cdk:deploy:gitbash`
     - This script deploys CDK stacks
     - Wait for all resources to be provisioned before continuing to the next step
     - AWS CDK output will be provided in your Terminal.
@@ -100,6 +101,7 @@ These instructions assume you have completed all the prerequisites.
     - Using either SMS or WhatsApp, send  `start` to the AWS End User Messaging Phone Number you selected.  You should receive a response from the solution with instructions to proceed with the demo.
 
 ## Bedrock Web Crawler Knowledge Base
+By default, the solution will create a Bedrock Knowledge Based using an S3 Bucket as the datasource.  If you would like to use the Web Crawler instead, you can uncomment the WebCrawler section in the `cdk-stacks/lib/cdk-backend-stack.ts` file.  
 By default, the solution will create a Bedrock Knowledge Based using an S3 Bucket as the datasource.  If you would like to use the Web Crawler instead, you can uncomment the WebCrawler section in the `cdk-stacks/lib/cdk-backend-stack.ts` file.  
 
 ## Conversational Data
@@ -131,6 +133,32 @@ You can also use [DynamoDB Streams](https://docs.aws.amazon.com/amazondynamodb/l
     - Inspect the CloudWatch Logs for the `ChatProcessor` Lambda function to ensure it is processing messages correctly
         - For more detailed logs you can [Set the Log Level to TRACE](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-cloudwatchlogs-advanced.html#monitoring-cloudwatchlogs-log-level-setting)
     - Check the `ChatProcessor` Lambda function's `Environment Variables` and ensure that the `KNOWLEDGE_BASE_ID` is correct
+- Credential Errors:
+```
+@aws-sdk/credential-provider-node - defaultProvider::fromEnv WARNING:
+    Multiple credential sources detected:
+    Both AWS_PROFILE and the pair AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY static credentials are set.
+    This SDK will proceed with the AWS_PROFILE value.
+
+    However, a future version may change this behavior to prefer the ENV static credentials.
+    Please ensure that your environment only sets either the AWS_PROFILE or the
+    AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY pair.
+```
+Remove either the AWS_PROFILE or the credentials from your environment.
+
+- Docker Errors: 
+```
+ERROR: Cannot connect to the Docker daemon at unix:///Users/bgiorgin/.docker/run/docker.sock. Is the docker daemon running?
+```
+
+Make sure you have Docker installed and running.
+
+```
+error getting credentials - err: exec: "docker-credential-desktop": executable file not found in $PATH, out: ``
+```
+
+Check your `~/.docker/config.json` for the line saying: `credsStore`. Replace this with `credStore` instead.
+ref: https://stackoverflow.com/questions/67642620/docker-credential-desktop-not-installed-or-not-available-in-path
 - Credential Errors:
 ```
 @aws-sdk/credential-provider-node - defaultProvider::fromEnv WARNING:
