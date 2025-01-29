@@ -47,7 +47,7 @@
     "@aws-sdk/client-ssm": "^3.395.0",
     "@cdklabs/generative-ai-cdk-constructs": "^0.1.224",
     "aws-cdk": "^2.150.0",
-    "aws-cdk-lib": "^2.150.0",
+    "aws-cdk-lib": "^2.177.0",
     "source-map-support": "^0.5.21"
   }
 }
