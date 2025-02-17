@@ -24,7 +24,7 @@ On a high-level, the solution consists of the following components, each contain
 * AWS Account
 * AWS IAM user with Administrator permissions
 * Amazon Bedrock models: [Bedrock Anthropic Claude 3.0 Sonnet and Titan Text Embeddings V2](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access-modify.html) enabled in your region
-* (Optional) Amazon Bedrock Agent: If you want to use the chat processor with an agent instead of a knowledge base, you must have a [Bedrock Agent](https://docs.aws.amazon.com/bedrock/latest/userguide/agent-create.html) created in your region prior to deploying the solution. Sample agents are available in the [Bedrock Agent Samples](https://github.com/aws-samples/amazon-bedrock-agent-samples) repository.
+* (Optional) Amazon Bedrock Agent: If you want to use the chat processor with an agent instead of a knowledge base, you must have a [Bedrock Agent](https://docs.aws.amazon.com/bedrock/latest/userguide/agent-create.html) created in your region prior to deploying the solution. Sample agents are available in the [Bedrock Agent Samples](https://github.com/aws-samples/amazon-bedrock-samples/tree/main/agents-and-function-calling/bedrock-agents/features-examples) repository.
 * [Docker](https://www.docker.com/) Installed and Running - This is used locally to package resources for deployment.
 * Node (> v18) and NPM (> v8.19) [installed and configured on your computer](https://nodejs.org/en/download/package-manager)
 * AWS CLI (v2) [installed and configured on your computer](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)

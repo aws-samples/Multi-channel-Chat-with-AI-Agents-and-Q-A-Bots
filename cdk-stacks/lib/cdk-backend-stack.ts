@@ -31,6 +31,9 @@ export class CdkBackendStack extends Stack {
       {
         id: 'AwsSolutions-IAM4',
         reason: 'This is the default Lambda Execution Policy which just grants writes to CloudWatch.'
+      },{
+        id: 'AwsSolutions-IAM5',
+        reason: 'This is the Log Retention Policies created by the Bedrock CDK Construct for the Open Search Logs. We dont have control over this policy, but it would need to create delete policies at the account level, so not sure how it would scope this down any further.'
       },
     ])
 
@@ -50,10 +53,14 @@ export class CdkBackendStack extends Stack {
         },
     ])
 
+    let knowledgeBase: bedrock.IKnowledgeBase | undefined;
+    let docsBucket: s3.Bucket | undefined;
+    let dataSource: bedrock.S3DataSource | undefined;
+    
     if (!ssmParams.useBedrockAgent) {
 
       // Bedrock Knowledge Base
-      const docsBucket = new s3.Bucket(this, "docsBucket", {
+      docsBucket = new s3.Bucket(this, "docsBucket", {
         lifecycleRules: [{
           expiration: Duration.days(10),
         }],
@@ -70,7 +77,7 @@ export class CdkBackendStack extends Stack {
         serverAccessLogsPrefix: 'kbdocs',
       });
 
-      const knowledgeBase = new bedrock.KnowledgeBase(
+      knowledgeBase = new bedrock.VectorKnowledgeBase(
         this,
         "docsKnowledgeBase",
         {
@@ -82,26 +89,17 @@ export class CdkBackendStack extends Stack {
         }
       );
 
-      const dataSource = new bedrock.S3DataSource(
+      dataSource = new bedrock.S3DataSource(
         this,
         "docsDataSource",
         {
           bucket: docsBucket,
           knowledgeBase: knowledgeBase,
           dataSourceName: "docs",
-          chunkingStrategy: bedrock.ChunkingStrategy.FIXED_SIZE,
-          maxTokens: 500,
-          overlapPercentage: 20,
+          chunkingStrategy: bedrock.ChunkingStrategy.FIXED_SIZE
         }
       );
     };
-
-    NagSuppressions.addResourceSuppressionsByPath(this, '/MultiChannelGenAIDemo/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/DefaultPolicy/Resource', [
-      {
-        id: 'AwsSolutions-IAM5',
-        reason: 'This is the Log Retention Policies created by the Bedrock CDK Construct for the Open Search Logs. We dont have control over this policy, but it would need to create delete policies at the account level, so not sure how it would scope this down any further.'
-      },
-    ])
 
     //// Uncomment the following to use a web scraper data source
     // const knowledgeBase = new bedrock.KnowledgeBase(
@@ -151,7 +149,7 @@ export class CdkBackendStack extends Stack {
 
     //Custom Resource Lambda
     const configLambda = new nodeLambda.NodejsFunction(this, 'ConfigLambda', {
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_22_X,
       entry: path.join(__dirname, 'lambdas/handlers/node/customResource.mjs'),
       timeout: Duration.seconds(30),
       memorySize: 512,
@@ -173,20 +171,23 @@ export class CdkBackendStack extends Stack {
           resources: [
               `${snsRole.roleArn}`
           ]
-        }),
-        new iam.PolicyStatement({
-          effect: iam.Effect.ALLOW,
-          actions: [
-            "bedrock:StartIngestionJob",
-            "bedrock:CreateDataSource",
-            "bedrock:DeleteDataSource"
-          ],
-          resources: [
-              `${knowledgeBase.knowledgeBaseArn}/*`
-          ]
-        }),
+        })
       ]
     });
+
+    if (knowledgeBase) {
+      configLambda.addToRolePolicy(
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+        actions: [
+          "bedrock:StartIngestionJob",
+          "bedrock:CreateDataSource",
+          "bedrock:DeleteDataSource"
+        ],
+          resources: knowledgeBase ? [`${knowledgeBase.knowledgeBaseArn}/*`] : []
+        }),
+      );
+    }
 
     NagSuppressions.addResourceSuppressionsByPath(this, '/MultiChannelGenAIDemo/ConfigLambda/ServiceRole/DefaultPolicy/Resource', [
       {
@@ -224,7 +225,7 @@ export class CdkBackendStack extends Stack {
     });
 
     const chatProcessorLambda = new nodeLambda.NodejsFunction(this, 'chatProcessorLambda', {
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_22_X,
       entry: path.join(__dirname, 'lambdas/handlers/node/chatProcessor.mjs'),
       timeout: Duration.seconds(30),
       memorySize: 512,
@@ -246,7 +247,7 @@ export class CdkBackendStack extends Stack {
           "BEDROCK_AGENT_ID": ssmParams.bedrockAgentId,
           "BEDROCK_AGENT_ALIAS_ID": ssmParams.bedrockAgentAliasId,
           "SESSION_SECONDS": "600",
-          "KNOWLEDGE_BASE_ID": knowledgeBase.knowledgeBaseId, 
+          "KNOWLEDGE_BASE_ID": knowledgeBase?.knowledgeBaseId ?? '', 
           "LLM_MAX_TOKENS": "300",
           "LLM_TEMPERATURE": "0.3",
           "CONFIGURATION_SET": ssmParams.configurationSet == 'not-defined' ? undefined : ssmParams.configurationSet,
@@ -305,14 +306,6 @@ export class CdkBackendStack extends Stack {
             ] 
         }),
         new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: [                
-              "bedrock:RetrieveAndGenerate",
-              "bedrock:Retrieve"
-            ],
-            resources: [knowledgeBase.knowledgeBaseArn] 
-        }),
-        new iam.PolicyStatement({
           effect: iam.Effect.ALLOW,
           actions: [                
             "bedrock:InvokeAgent"
@@ -329,6 +322,19 @@ export class CdkBackendStack extends Stack {
         }),
       ]
     }));
+
+    if (knowledgeBase) {
+      chatProcessorLambda.addToRolePolicy(
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [                
+            "bedrock:RetrieveAndGenerate",
+            "bedrock:Retrieve"
+          ],
+          resources: [knowledgeBase?.knowledgeBaseArn ?? ''] 
+        }),
+      );  
+    }
 
     NagSuppressions.addResourceSuppressionsByPath(this, '/MultiChannelGenAIDemo/chatProcessorPolicy/Resource', [
       {
@@ -395,15 +401,11 @@ export class CdkBackendStack extends Stack {
     });
 
     new CfnOutput(this, "DocsBucketName", {
-      value: docsBucket.bucketName,
+      value: docsBucket?.bucketName ?? 'Not Created',
     });
 
-    new CfnOutput(this, "KnowledgeBaseName", {
-      value: knowledgeBase.name,
-    });
-
-    new CfnOutput(this, "DataSourceName", {
-      value: dataSource.dataSource.name,
+    new CfnOutput(this, "KnowledgeBaseId", {
+      value: knowledgeBase?.knowledgeBaseId ?? 'Not Created',
     });
   }
 }
