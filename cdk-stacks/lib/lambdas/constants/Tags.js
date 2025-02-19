@@ -5,7 +5,7 @@
  * Tags to be applied on API calls from dashboard that accept them
  */
 const tags = {
-  "created-from": "Amazon Pinpoint LLM Chatbot"
+  "created-from": "AWS End User Messaging GenAI Chatbot"
 }
 
 export default tags
