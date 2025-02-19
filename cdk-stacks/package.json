@@ -1,7 +1,7 @@
 {
   "name": "cdk-stacks",
   "version": "1.2.1",
-  "description": "Amazon Pinpoint LLM Chatbot",
+  "description": "AWS End User Messaging GenAI Chatbot",
   "main": "configure.js",
   "scripts": {
     "build": "tsc",

@@ -84,7 +84,7 @@
 		}
 	],
 	"tags": {
-		"project": "Two Way SMS Chat with a Generative AI Chatbot",
-		"os-code-source": "https://github.com/aws-samples/two-way-sms-chat-with-a-generative-ai-chatbot"
+		"project": "AWS End User Messaging GenAI Chatbot",
+		"os-code-source": "https://github.com/aws-samples/Multi-channel-Chat-with-AI-Agents-and-Q-A-Bots"
 	}
 }
